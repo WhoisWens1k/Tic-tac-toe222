@@ -1,10 +1,12 @@
 import React from 'react';
-import { Player, Scores } from '../types/game';
 
 interface ScoreBoardProps {
   player1Icon: string;
   player2Icon: string;
-  scores: Scores;
+  scores: {
+    PLAYER_ONE: number;
+    PLAYER_TWO: number;
+  };
   imageLoadErrors?: Record<string, boolean>;
   onImageError?: (imagePath: string) => void;
 }
@@ -31,8 +33,9 @@ const ScoreBoard: React.FC<ScoreBoardProps> = ({
             />
           )}
         </div>
-        <div className="player-score">{scores[Player.One]}</div>
+        <div className="player-score">{scores.PLAYER_ONE}</div>
       </div>
+      <div className="score-divider">:</div>
       <div className="score-item">
         <div className="player-icon">
           {imageLoadErrors[player2Icon] ? (
@@ -46,7 +49,7 @@ const ScoreBoard: React.FC<ScoreBoardProps> = ({
             />
           )}
         </div>
-        <div className="player-score">{scores[Player.Two]}</div>
+        <div className="player-score">{scores.PLAYER_TWO}</div>
       </div>
     </div>
   );

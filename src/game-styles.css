@@ -1,0 +1,70 @@
+/* Z-index styles for elements that should appear above the Vanta background */
+h1 {
+  position: relative;
+  z-index: 2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  margin-top: 20px;
+}
+
+.controls {
+  margin-top: 20px;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  background-color: #4a4a4a;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+  min-width: 120px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+button:hover {
+  background-color: #5a5a5a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.theme-selector {
+  margin: 15px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.theme-selector label {
+  font-weight: bold;
+  position: relative;
+  z-index: 2;
+}
+
+.theme-selector select {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #444;
+  cursor: pointer;
+  font-size: 14px;
+  position: relative;
+  z-index: 2;
+} 

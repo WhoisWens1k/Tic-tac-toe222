@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import GameBoard from './components/GameBoard';
 import ScoreBoard from './components/ScoreBoard';
 import AvatarSelection from './components/AvatarSelection';
-import { useGameLogic } from './hooks/useGameLogic';
-import { Player } from './types/game';
+import { useGameLogic } from './game/useGameLogic';
 import { avatarImages } from './utils/avatarImages';
+import './game-styles.css';
 
 // Fallback mapping for avatars
 const avatarFallbacks: Record<string, string> = {
@@ -17,30 +17,51 @@ const App: React.FC = () => {
   const [player1Avatar, setPlayer1Avatar] = useState<string | null>(null);
   const [player2Avatar, setPlayer2Avatar] = useState<string | null>(null);
   const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
+  const [scores, setScores] = useState({ 1: 0, 2: 0 });
+  const [currentTheme, setCurrentTheme] = useState('clouds');
+  const [key, setKey] = useState(0); // Key to force re-render of GameBoard when theme changes
 
-  const {
-    board,
-    currentPlayer,
-    selectedPosition,
-    gamePhase,
-    winner,
-    winningLine,
-    scores,
-    handlePositionClick,
-    resetGame,
-  } = useGameLogic();
+  const { gameState, handlePosition, resetGame, startGame } = useGameLogic();
 
-  const handleImageError = (imagePath: string) => {
+  const handleImageError = useCallback((imagePath: string) => {
     setImageLoadErrors(prev => ({
       ...prev,
       [imagePath]: true
     }));
-  };
+  }, []);
 
-  const getAvatarFallback = (avatarPath: string | null) => {
+  const getAvatarFallback = useCallback((avatarPath: string | null) => {
     if (!avatarPath) return 'Avatar';
     return avatarFallbacks[avatarPath] || 'Avatar';
-  };
+  }, []);
+
+  const handleThemeChange = useCallback((theme: string) => {
+    setCurrentTheme(theme);
+    // Force re-render of GameBoard when theme changes
+    setKey(prevKey => prevKey + 1);
+  }, []);
+
+  // Update scores when there's a winner
+  React.useEffect(() => {
+    if (gameState.winner) {
+      setScores(prev => ({
+        ...prev,
+        [gameState.winner as keyof typeof prev]: prev[gameState.winner as keyof typeof prev] + 1
+      }));
+    }
+  }, [gameState.winner]);
+
+  const handleResetGame = useCallback(() => {
+    resetGame();
+  }, [resetGame]);
+
+  const handleBackToHome = useCallback(() => {
+    setPlayer1Avatar(null);
+    setPlayer2Avatar(null);
+    resetGame();
+    // Reset scores when going back to home
+    setScores({ 1: 0, 2: 0 });
+  }, [resetGame]);
 
   if (!player1Avatar || !player2Avatar) {
     return (
@@ -48,7 +69,10 @@ const App: React.FC = () => {
         onSelect={(p1Avatar, p2Avatar) => {
           setPlayer1Avatar(p1Avatar);
           setPlayer2Avatar(p2Avatar);
+          startGame(null, "medium");
         }}
+        onSelectTheme={handleThemeChange}
+        currentTheme={currentTheme}
       />
     );
   }
@@ -56,42 +80,51 @@ const App: React.FC = () => {
   return (
     <div className="app">
       <div className="game-container">
-        <h1>Modern Tic Tac Toe</h1>
+        <div className="header-container">
+          <h1>Modern Tic Tac Toe</h1>
+          <ScoreBoard
+            player1Icon={player1Avatar}
+            player2Icon={player2Avatar}
+            scores={{ PLAYER_ONE: scores[1], PLAYER_TWO: scores[2] }}
+            imageLoadErrors={imageLoadErrors}
+            onImageError={handleImageError}
+          />
+        </div>
         <div className="game-info">
           <div className="player-turn">
             Current Player: 
             <div className="avatar-display">
-              {imageLoadErrors[currentPlayer === Player.One ? player1Avatar : player2Avatar] ? (
+              {imageLoadErrors[gameState.currentPlayer === 1 ? player1Avatar : player2Avatar] ? (
                 <div className="avatar-fallback">
-                  {getAvatarFallback(currentPlayer === Player.One ? player1Avatar : player2Avatar)}
+                  {getAvatarFallback(gameState.currentPlayer === 1 ? player1Avatar : player2Avatar)}
                 </div>
               ) : (
                 <img 
-                  src={currentPlayer === Player.One ? player1Avatar : player2Avatar} 
-                  alt={`Player ${currentPlayer}`} 
+                  src={gameState.currentPlayer === 1 ? player1Avatar : player2Avatar} 
+                  alt={`Player ${gameState.currentPlayer}`} 
                   className="avatar-image"
-                  onError={() => handleImageError(currentPlayer === Player.One ? player1Avatar : player2Avatar)}
+                  onError={() => handleImageError(gameState.currentPlayer === 1 ? player1Avatar : player2Avatar)}
                 />
               )}
             </div>
           </div>
           <div className="game-phase">
-            {gamePhase === 'placement' ? 'Placement Phase' : 'Movement Phase'}
+            {gameState.phase === 'placement' ? 'Placement Phase' : 'Movement Phase'}
           </div>
-          {winner && (
+          {gameState.winner && (
             <div className="winner">
               Winner: 
               <div className="avatar-display">
-                {imageLoadErrors[winner === Player.One ? player1Avatar : player2Avatar] ? (
+                {imageLoadErrors[gameState.winner === 1 ? player1Avatar : player2Avatar] ? (
                   <div className="avatar-fallback">
-                    {getAvatarFallback(winner === Player.One ? player1Avatar : player2Avatar)}
+                    {getAvatarFallback(gameState.winner === 1 ? player1Avatar : player2Avatar)}
                   </div>
                 ) : (
                   <img 
-                    src={winner === Player.One ? player1Avatar : player2Avatar} 
-                    alt={`Player ${winner}`} 
+                    src={gameState.winner === 1 ? player1Avatar : player2Avatar} 
+                    alt={`Player ${gameState.winner}`} 
                     className="avatar-image"
-                    onError={() => handleImageError(winner === Player.One ? player1Avatar : player2Avatar)}
+                    onError={() => handleImageError(gameState.winner === 1 ? player1Avatar : player2Avatar)}
                   />
                 )}
               </div>
@@ -99,27 +132,23 @@ const App: React.FC = () => {
           )}
         </div>
         <GameBoard
-          board={board}
-          currentPlayer={currentPlayer}
-          selectedPosition={selectedPosition}
-          winningLine={winningLine}
+          key={key} // Force re-render when theme changes
+          board={gameState.board}
+          currentPlayer={gameState.currentPlayer}
+          selectedPosition={gameState.selectedPiece}
+          winningLine={gameState.winningLine}
           player1Icon={player1Avatar}
           player2Icon={player2Avatar}
-          onPositionClick={handlePositionClick}
-          gamePhase={gamePhase}
+          onPositionClick={handlePosition}
+          gamePhase={gameState.phase}
           imageLoadErrors={imageLoadErrors}
           onImageError={handleImageError}
+          theme={currentTheme}
         />
         <div className="controls">
-          <button onClick={resetGame}>New Game</button>
+          <button onClick={handleResetGame}>New Game</button>
+          <button onClick={handleBackToHome}>Back to Home</button>
         </div>
-        <ScoreBoard
-          player1Icon={player1Avatar}
-          player2Icon={player2Avatar}
-          scores={scores}
-          imageLoadErrors={imageLoadErrors}
-          onImageError={handleImageError}
-        />
       </div>
     </div>
   );

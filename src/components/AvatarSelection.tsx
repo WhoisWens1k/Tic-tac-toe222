@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { avatarImages } from '../utils/avatarImages';
+import ThemeSelector from './ThemeSelector';
 
 // Using embedded avatar images
 const avatarOptions = [
@@ -10,9 +11,11 @@ const avatarOptions = [
 
 interface AvatarSelectionProps {
   onSelect: (player1Avatar: string, player2Avatar: string) => void;
+  onSelectTheme: (theme: string) => void;
+  currentTheme: string;
 }
 
-const AvatarSelection: React.FC<AvatarSelectionProps> = ({ onSelect }) => {
+const AvatarSelection: React.FC<AvatarSelectionProps> = ({ onSelect, onSelectTheme, currentTheme }) => {
   const [player1Avatar, setPlayer1Avatar] = useState(avatarOptions[0].content);
   const [player2Avatar, setPlayer2Avatar] = useState(avatarOptions[1].content);
   const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
@@ -28,6 +31,9 @@ const AvatarSelection: React.FC<AvatarSelectionProps> = ({ onSelect }) => {
     <div className="avatar-selection-container">
       <div className="avatar-selection">
         <h2>Choose Your Avatars</h2>
+        <div className="theme-selection-container">
+          <ThemeSelector onSelectTheme={onSelectTheme} currentTheme={currentTheme} />
+        </div>
         <div className="avatar-selection-grid">
           <div className="player-selection">
             <h3>Player 1</h3>

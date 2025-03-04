@@ -64,13 +64,21 @@ export const useGameLogic = () => {
   
   // Check for a win after each move
   const checkWin = useCallback((): boolean => {
+    console.log('Checking for win...');
+    console.log('Current board state:', board);
+    console.log('Winning combinations:', WINNING_COMBINATIONS);
+    
     for (const combination of WINNING_COMBINATIONS) {
       const [a, b, c] = combination;
+      console.log(`Checking combination: [${a}, ${b}, ${c}]`);
+      console.log(`Values: [${board[a]}, ${board[b]}, ${board[c]}]`);
+      
       if (
         board[a] !== null &&
         board[a] === board[b] &&
         board[a] === board[c]
       ) {
+        console.log(`Win detected! Player: ${board[a]}`);
         setWinner(board[a] as Player);
         setWinningLine(combination);
         
@@ -94,6 +102,7 @@ export const useGameLogic = () => {
         return true;
       }
     }
+    console.log('No win detected');
     return false;
   }, [board]);
   
