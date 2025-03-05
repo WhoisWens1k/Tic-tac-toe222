@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import GameBoard from './components/GameBoard';
 import ScoreBoard from './components/ScoreBoard';
 import AvatarSelection from './components/AvatarSelection';
@@ -13,15 +13,42 @@ const avatarFallbacks: Record<string, string> = {
   [avatarImages.avatar3]: 'Avatar 3'
 };
 
+// Default theme
+const DEFAULT_THEME = 'clouds';
+
+// Available themes
+const AVAILABLE_THEMES = ['clouds', 'waves', 'fog', 'birds', 'net', 'dots', 'rings'];
+
 const App: React.FC = () => {
   const [player1Avatar, setPlayer1Avatar] = useState<string | null>(null);
   const [player2Avatar, setPlayer2Avatar] = useState<string | null>(null);
   const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
   const [scores, setScores] = useState({ 1: 0, 2: 0 });
-  const [currentTheme, setCurrentTheme] = useState('clouds');
+  const [currentTheme, setCurrentTheme] = useState(DEFAULT_THEME);
+  const [isThemeChanging, setIsThemeChanging] = useState(false);
   const [key, setKey] = useState(0); // Key to force re-render of GameBoard when theme changes
 
   const { gameState, handlePosition, resetGame, startGame } = useGameLogic();
+
+  // Preload theme scripts
+  useEffect(() => {
+    // This helps ensure the scripts are loaded before they're needed
+    const preloadScript = (url: string) => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'script';
+      link.href = url;
+      document.head.appendChild(link);
+    };
+
+    // Preload Three.js
+    preloadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js');
+    
+    // Preload Vanta effects
+    AVAILABLE_THEMES.forEach(theme => {
+      preloadScript(`https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.${theme}.min.js`);
+    });
+  }, []);
 
   const handleImageError = useCallback((imagePath: string) => {
     setImageLoadErrors(prev => ({
@@ -36,13 +63,24 @@ const App: React.FC = () => {
   }, []);
 
   const handleThemeChange = useCallback((theme: string) => {
-    setCurrentTheme(theme);
-    // Force re-render of GameBoard when theme changes
-    setKey(prevKey => prevKey + 1);
+    // Set loading state
+    setIsThemeChanging(true);
+    
+    // Change theme with a slight delay to allow for transition effects
+    setTimeout(() => {
+      setCurrentTheme(theme);
+      // Force re-render of GameBoard when theme changes
+      setKey(prevKey => prevKey + 1);
+      
+      // Reset loading state after a delay to ensure the theme has loaded
+      setTimeout(() => {
+        setIsThemeChanging(false);
+      }, 500);
+    }, 100);
   }, []);
 
   // Update scores when there's a winner
-  React.useEffect(() => {
+  useEffect(() => {
     if (gameState.winner) {
       setScores(prev => ({
         ...prev,
@@ -56,11 +94,19 @@ const App: React.FC = () => {
   }, [resetGame]);
 
   const handleBackToHome = useCallback(() => {
-    setPlayer1Avatar(null);
-    setPlayer2Avatar(null);
-    resetGame();
-    // Reset scores when going back to home
-    setScores({ 1: 0, 2: 0 });
+    // Set loading state
+    setIsThemeChanging(true);
+    
+    setTimeout(() => {
+      setPlayer1Avatar(null);
+      setPlayer2Avatar(null);
+      resetGame();
+      // Reset scores when going back to home
+      setScores({ 1: 0, 2: 0 });
+      
+      // Reset loading state
+      setIsThemeChanging(false);
+    }, 300);
   }, [resetGame]);
 
   if (!player1Avatar || !player2Avatar) {
@@ -78,7 +124,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${isThemeChanging ? 'theme-changing' : ''}`}>
       <div className="game-container">
         <div className="header-container">
           <h1>Modern Tic Tac Toe</h1>
@@ -131,6 +177,15 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
+        
+        {/* Loading overlay */}
+        {isThemeChanging && (
+          <div className="theme-loading-overlay">
+            <div className="loading-spinner"></div>
+            <p>Changing theme...</p>
+          </div>
+        )}
+        
         <GameBoard
           key={key} // Force re-render when theme changes
           board={gameState.board}
@@ -146,8 +201,8 @@ const App: React.FC = () => {
           theme={currentTheme}
         />
         <div className="controls">
-          <button onClick={handleResetGame}>New Game</button>
-          <button onClick={handleBackToHome}>Back to Home</button>
+          <button onClick={handleResetGame} disabled={isThemeChanging}>New Game</button>
+          <button onClick={handleBackToHome} disabled={isThemeChanging}>Back to Home</button>
         </div>
       </div>
     </div>

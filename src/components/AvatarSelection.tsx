@@ -31,9 +31,12 @@ const AvatarSelection: React.FC<AvatarSelectionProps> = ({ onSelect, onSelectThe
     <div className="avatar-selection-container">
       <div className="avatar-selection">
         <h2>Choose Your Avatars</h2>
+        
         <div className="theme-selection-container">
+          <h3>Select Game Theme</h3>
           <ThemeSelector onSelectTheme={onSelectTheme} currentTheme={currentTheme} />
         </div>
+        
         <div className="avatar-selection-grid">
           <div className="player-selection">
             <h3>Player 1</h3>

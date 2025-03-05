@@ -31,24 +31,36 @@ button {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-button:hover {
+button:hover:not(:disabled) {
   background-color: #5a5a5a;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
-button:active {
+button:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.theme-selector {
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Theme selector styles */
+.theme-selector-container {
+  position: relative;
   margin: 15px 0;
+  z-index: 10;
+}
+
+.theme-selector {
   display: flex;
   align-items: center;
   gap: 10px;
   position: relative;
   z-index: 2;
+  margin-bottom: 15px;
 }
 
 .theme-selector label {
@@ -67,4 +79,226 @@ button:active {
   font-size: 14px;
   position: relative;
   z-index: 2;
+}
+
+.theme-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.theme-preview-item {
+  height: 60px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.theme-preview-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.theme-preview-item.active {
+  border: 2px solid #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.theme-preview-item span {
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.theme-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 15px;
+  border-radius: 6px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  width: 200px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.theme-tooltip:after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -10px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: inherit;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+
+.theme-tooltip h4 {
+  margin: 0 0 5px;
+  font-size: 16px;
+}
+
+.theme-tooltip p {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* Game board styles */
+.game-board {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  transition: background-color 0.5s ease;
+}
+
+.game-board.fallback-active {
+  /* Fallback styles when Vanta effects fail */
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.board-container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Player piece styles */
+.player-piece {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.player-piece-fallback {
+  font-weight: bold;
+}
+
+.position-label {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Loading indicator */
+.game-board:not(.theme-loaded):not(.fallback-active)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50px;
+  height: 50px;
+  margin: -25px 0 0 -25px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+/* Theme loading overlay */
+.theme-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  transition: opacity 0.3s ease;
+}
+
+.theme-loading-overlay p {
+  color: white;
+  font-size: 18px;
+  margin-top: 20px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+.theme-changing .game-container {
+  filter: blur(2px);
+  transition: filter 0.3s ease;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .board-container {
+    max-width: 90%;
+  }
+  
+  .theme-preview-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  button {
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .theme-preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .theme-tooltip {
+    width: 150px;
+    font-size: 12px;
+  }
 } 

@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Board, Position, WinningLine } from '../game/types';
 import * as THREE from 'three';
@@ -64,212 +64,190 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const vantaRef = useRef<HTMLDivElement>(null);
   const vantaEffectRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
+  const [themeLoaded, setThemeLoaded] = useState(false);
+  const [fallbackActive, setFallbackActive] = useState(false);
 
-  useEffect(() => {
-    // Only initialize if the ref is available and we haven't already initialized
-    if (vantaRef.current && !isInitializedRef.current) {
-      isInitializedRef.current = true;
-      
-      // Create new effect with current theme
-      try {
-        switch (theme) {
-          case 'clouds':
-            vantaEffectRef.current = CLOUDS({
-              el: vantaRef.current,
-              THREE: THREE,
-              mouseControls: true,
-              touchControls: true,
-              gyroControls: false,
-              minHeight: 200,
-              minWidth: 200,
-              scale: 1.0,
-              scaleMobile: 1.0,
-              backgroundColor: 0x1a365d,
-              cloudColor: 0x87ceeb,
-              speed: 1.0,
-            });
-            break;
-          case 'waves':
-            vantaEffectRef.current = CLOUDS({
-              el: vantaRef.current,
-              THREE: THREE,
-              mouseControls: true,
-              touchControls: true,
-              gyroControls: false,
-              minHeight: 200,
-              minWidth: 200,
-              scale: 1.0,
-              scaleMobile: 1.0,
-              backgroundColor: 0x0a2e44,
-              cloudColor: 0x00bfff,
-              speed: 1.5,
-            });
-            break;
-          case 'fog':
-            vantaEffectRef.current = FOG({
-              el: vantaRef.current,
-              THREE: THREE,
-              mouseControls: true,
-              touchControls: true,
-              gyroControls: false,
-              minHeight: 200,
-              minWidth: 200,
-              highlightColor: 0xffffff,
-              midtoneColor: 0x8c8c8c,
-              lowlightColor: 0x2c3e50,
-              baseColor: 0x2c3e50,
-              blurFactor: 0.6,
-              speed: 1.0,
-              zoom: 1.0
-            });
-            break;
-          case 'birds':
-            vantaEffectRef.current = BIRDS({
-              el: vantaRef.current,
-              THREE: THREE,
-              mouseControls: true,
-              touchControls: true,
-              gyroControls: false,
-              minHeight: 200,
-              minWidth: 200,
-              scale: 1.0,
-              scaleMobile: 1.0,
-              backgroundColor: 0x0a192f,
-              color1: 0x64ffda,
-              color2: 0x7928ca,
-              colorMode: "variance",
-              birdSize: 1.0,
-              wingSpan: 20.0,
-              speedLimit: 5.0,
-              separation: 30.0,
-              alignment: 30.0,
-              cohesion: 30.0,
-              quantity: 3.0
-            });
-            break;
-          case 'net':
-            vantaEffectRef.current = NET({
-              el: vantaRef.current,
-              THREE: THREE,
-              mouseControls: true,
-              touchControls: true,
-              gyroControls: false,
-              minHeight: 200,
-              minWidth: 200,
-              scale: 1.0,
-              scaleMobile: 1.0,
-              color: 0x3f51b5,
-              backgroundColor: 0x0a192f,
-              points: 10,
-              maxDistance: 20.0,
-              spacing: 15.0
-            });
-            break;
-          case 'dots':
-            try {
-              vantaEffectRef.current = DOTS({
-                el: vantaRef.current,
-                THREE: THREE,
-                mouseControls: true,
-                touchControls: true,
-                gyroControls: false,
-                minHeight: 200,
-                minWidth: 200,
-                scale: 1.0,
-                scaleMobile: 1.0,
-                color: 0xff3f81,
-                color2: 0x7928ca,
-                backgroundColor: 0x0a192f,
-                size: 3.0,
-                spacing: 35.0,
-                showLines: true
-              });
-            } catch (error) {
-              console.error("Error initializing dots effect:", error);
-              // Fallback to clouds if dots fails
-              vantaEffectRef.current = CLOUDS({
-                el: vantaRef.current,
-                THREE: THREE,
-                mouseControls: true,
-                touchControls: true,
-                gyroControls: false,
-                minHeight: 200,
-                minWidth: 200,
-                scale: 1.0,
-                scaleMobile: 1.0,
-                backgroundColor: 0x1a365d,
-                cloudColor: 0x87ceeb,
-                speed: 1.0,
-              });
-            }
-            break;
-          case 'rings':
-            vantaEffectRef.current = RINGS({
-              el: vantaRef.current,
-              THREE: THREE,
-              mouseControls: true,
-              touchControls: true,
-              gyroControls: false,
-              minHeight: 200,
-              minWidth: 200,
-              scale: 1.0,
-              scaleMobile: 1.0,
-              backgroundColor: 0x0a192f,
-              color: 0xff3f81
-            });
-            break;
-          default:
-            vantaEffectRef.current = CLOUDS({
-              el: vantaRef.current,
-              THREE: THREE,
-              mouseControls: true,
-              touchControls: true,
-              gyroControls: false,
-              minHeight: 200,
-              minWidth: 200,
-              scale: 1.0,
-              scaleMobile: 1.0,
-              backgroundColor: 0x1a365d,
-              cloudColor: 0x87ceeb,
-              speed: 1.0,
-            });
-        }
-      } catch (error) {
-        console.error("Error initializing Vanta effect:", error);
-        // Fallback to a simple background color if all else fails
-        if (vantaRef.current) {
-          vantaRef.current.style.backgroundColor = '#1a365d';
-        }
+  // Theme configuration presets
+  const themeConfigs = {
+    clouds: {
+      effect: CLOUDS,
+      options: {
+        backgroundColor: 0x1a365d,
+        cloudColor: 0x87ceeb,
+        speed: 1.0,
       }
-    } else if (vantaRef.current && isInitializedRef.current && vantaEffectRef.current) {
-      // If we're changing themes and already have an effect initialized
-      try {
-        // Safely destroy the previous effect
-        if (vantaEffectRef.current && typeof vantaEffectRef.current.destroy === 'function') {
-          vantaEffectRef.current.destroy();
-        }
-        
-        // Reset the effect reference
-        vantaEffectRef.current = null;
-        
-        // Re-initialize with the new theme (on the next render)
-        isInitializedRef.current = false;
-      } catch (error) {
-        console.error("Error cleaning up Vanta effect:", error);
+    },
+    waves: {
+      effect: CLOUDS,
+      options: {
+        backgroundColor: 0x0a2e44,
+        cloudColor: 0x00bfff,
+        speed: 1.5,
+      }
+    },
+    fog: {
+      effect: FOG,
+      options: {
+        highlightColor: 0xffffff,
+        midtoneColor: 0x8c8c8c,
+        lowlightColor: 0x2c3e50,
+        baseColor: 0x2c3e50,
+        blurFactor: 0.6,
+        speed: 1.0,
+        zoom: 1.0
+      }
+    },
+    birds: {
+      effect: BIRDS,
+      options: {
+        backgroundColor: 0x0a192f,
+        color1: 0x64ffda,
+        color2: 0x7928ca,
+        colorMode: "variance",
+        birdSize: 1.0,
+        wingSpan: 20.0,
+        speedLimit: 5.0,
+        separation: 30.0,
+        alignment: 30.0,
+        cohesion: 30.0,
+        quantity: 3.0
+      }
+    },
+    net: {
+      effect: NET,
+      options: {
+        color: 0x3f51b5,
+        backgroundColor: 0x0a192f,
+        points: 10,
+        maxDistance: 20.0,
+        spacing: 15.0
+      }
+    },
+    dots: {
+      effect: DOTS,
+      options: {
+        color: 0xff3f81,
+        color2: 0x7928ca,
+        backgroundColor: 0x0a192f,
+        size: 3.0,
+        spacing: 35.0,
+        showLines: true
+      }
+    },
+    rings: {
+      effect: RINGS,
+      options: {
+        backgroundColor: 0x0a192f,
+        color: 0xff3f81
       }
     }
+  };
+
+  // Fallback styles for when Vanta effects fail
+  const fallbackStyles = {
+    clouds: { backgroundColor: '#1a365d' },
+    waves: { backgroundColor: '#0a2e44' },
+    fog: { backgroundColor: '#2c3e50' },
+    birds: { backgroundColor: '#0a192f' },
+    net: { backgroundColor: '#0a192f' },
+    dots: { backgroundColor: '#0a192f' },
+    rings: { backgroundColor: '#0a192f' }
+  };
+
+  // Initialize or update the Vanta effect
+  const initVantaEffect = () => {
+    if (!vantaRef.current) return;
     
-    // Cleanup function
-    return () => {
+    // Clean up any existing effect
+    if (vantaEffectRef.current) {
       try {
-        if (vantaEffectRef.current && typeof vantaEffectRef.current.destroy === 'function') {
-          vantaEffectRef.current.destroy();
-          vantaEffectRef.current = null;
-        }
+        vantaEffectRef.current.destroy();
+        vantaEffectRef.current = null;
       } catch (error) {
-        console.error("Error in cleanup:", error);
+        console.error("Error cleaning up previous effect:", error);
       }
-    };
+    }
+
+    // Apply fallback style immediately (will be overridden by Vanta if successful)
+    if (vantaRef.current) {
+      const fallbackStyle = fallbackStyles[theme as keyof typeof fallbackStyles] || fallbackStyles.clouds;
+      Object.assign(vantaRef.current.style, fallbackStyle);
+    }
+
+    setThemeLoaded(false);
+    setFallbackActive(false);
+
+    // Get theme configuration
+    const themeConfig = themeConfigs[theme as keyof typeof themeConfigs] || themeConfigs.clouds;
+    
+    try {
+      // Initialize the new effect with common options and theme-specific options
+      vantaEffectRef.current = themeConfig.effect({
+        el: vantaRef.current,
+        THREE: THREE,
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: 200,
+        minWidth: 200,
+        scale: 1.0,
+        scaleMobile: 1.0,
+        ...themeConfig.options
+      });
+      
+      setThemeLoaded(true);
+    } catch (error) {
+      console.error(`Error initializing ${theme} effect:`, error);
+      setFallbackActive(true);
+      
+      // Try to initialize the clouds effect as a fallback
+      if (theme !== 'clouds') {
+        try {
+          vantaEffectRef.current = CLOUDS({
+            el: vantaRef.current,
+            THREE: THREE,
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200,
+            minWidth: 200,
+            scale: 1.0,
+            scaleMobile: 1.0,
+            backgroundColor: 0x1a365d,
+            cloudColor: 0x87ceeb,
+            speed: 1.0,
+          });
+          setThemeLoaded(true);
+        } catch (fallbackError) {
+          console.error("Error initializing fallback effect:", fallbackError);
+          // Keep the fallback style applied
+        }
+      }
+    }
+  };
+
+  // Effect to initialize or update the Vanta effect when the theme changes
+  useEffect(() => {
+    // Only initialize if the ref is available
+    if (vantaRef.current) {
+      // Set a small timeout to ensure the DOM is fully ready
+      const timeoutId = setTimeout(() => {
+        initVantaEffect();
+      }, 100);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        // Clean up on unmount
+        if (vantaEffectRef.current) {
+          try {
+            vantaEffectRef.current.destroy();
+            vantaEffectRef.current = null;
+          } catch (error) {
+            console.error("Error in cleanup:", error);
+          }
+        }
+      };
+    }
   }, [theme]);
 
   // Calculate position coordinates
@@ -340,7 +318,11 @@ const GameBoard: React.FC<GameBoardProps> = ({
   
   return (
     <>
-      <div ref={vantaRef} className="game-board"></div>
+      <div 
+        ref={vantaRef} 
+        className={`game-board ${fallbackActive ? 'fallback-active' : ''} ${themeLoaded ? 'theme-loaded' : ''}`}
+        style={fallbackActive ? fallbackStyles[theme as keyof typeof fallbackStyles] || fallbackStyles.clouds : {}}
+      ></div>
       <div className="board-container">
         <svg
           width="100%"
@@ -427,47 +409,27 @@ const GameBoard: React.FC<GameBoardProps> = ({
                       {getPlayerFallback(position)}
                     </text>
                   ) : (
-                    <foreignObject 
-                      x={pos.x - 20} 
-                      y={pos.y - 20} 
-                      width={40} 
-                      height={40}
-                    >
-                      <div 
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          overflow: 'hidden',
-                          borderRadius: '50%'
-                        }}
-                      >
-                        <img 
-                          src={playerIcon} 
-                          alt={`Player ${piece}`}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                          onError={() => playerIcon && onImageError(playerIcon)}
-                        />
-                      </div>
-                    </foreignObject>
+                    <image
+                      href={playerIcon}
+                      x={pos.x - 20}
+                      y={pos.y - 20}
+                      height="40"
+                      width="40"
+                      className="player-piece"
+                      onError={() => onImageError(playerIcon)}
+                    />
                   )
                 ) : (
                   <text
                     x={pos.x}
                     y={pos.y}
-                    className="position-label"
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill="rgba(180, 180, 220, 0.7)"
+                    fill="rgba(255, 255, 255, 0.6)"
                     fontSize="12px"
+                    className="position-label"
                   >
-                    CP{position}
+                    {`CP${position}`}
                   </text>
                 )}
               </g>
@@ -479,4 +441,4 @@ const GameBoard: React.FC<GameBoardProps> = ({
   );
 };
 
-export default React.memo(GameBoard); 
+export default GameBoard; 
