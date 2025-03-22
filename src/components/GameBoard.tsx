@@ -1,6 +1,8 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Board, Position, WinningLine } from '../game/types';
+import NetworkEffect from './NetworkEffect';
+import ParticleBackground from './ParticleBackground';
 import * as THREE from 'three';
 import CLOUDS from 'vanta/dist/vanta.clouds.min';
 import BIRDS from 'vanta/dist/vanta.birds.min';
@@ -46,6 +48,35 @@ const calculatePositionCoordinates = () => {
   ];
   
   return positions;
+};
+
+// Fallback styles when the theme effect fails to load
+const getFallbackStyle = (theme: string) => {
+  const styles: Record<string, React.CSSProperties> = {
+    clouds: {
+      background: 'linear-gradient(45deg, #1a365d, #4a90e2)',
+    },
+    waves: {
+      background: 'linear-gradient(45deg, #0a2e44, #1e6091)',
+    },
+    fog: {
+      background: 'linear-gradient(45deg, #2c3e50, #3498db)',
+    },
+    birds: {
+      background: 'linear-gradient(45deg, #0a192f, #233554)',
+    },
+    net: {
+      background: 'linear-gradient(45deg, #0a192f, #112240)',
+    },
+    dots: {
+      background: 'linear-gradient(45deg, #0a192f, #1a365d)',
+    },
+    rings: {
+      background: 'linear-gradient(45deg, #0a192f, #233554)',
+    }
+  };
+  
+  return styles[theme] || styles.clouds;
 };
 
 const GameBoard: React.FC<GameBoardProps> = ({
@@ -143,17 +174,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
     }
   };
 
-  // Fallback styles for when Vanta effects fail
-  const fallbackStyles = {
-    clouds: { backgroundColor: '#1a365d' },
-    waves: { backgroundColor: '#0a2e44' },
-    fog: { backgroundColor: '#2c3e50' },
-    birds: { backgroundColor: '#0a192f' },
-    net: { backgroundColor: '#0a192f' },
-    dots: { backgroundColor: '#0a192f' },
-    rings: { backgroundColor: '#0a192f' }
-  };
-
   // Initialize or update the Vanta effect
   const initVantaEffect = () => {
     if (!vantaRef.current) return;
@@ -170,7 +190,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
     // Apply fallback style immediately (will be overridden by Vanta if successful)
     if (vantaRef.current) {
-      const fallbackStyle = fallbackStyles[theme as keyof typeof fallbackStyles] || fallbackStyles.clouds;
+      const fallbackStyle = getFallbackStyle(theme);
       Object.assign(vantaRef.current.style, fallbackStyle);
     }
 
@@ -320,9 +340,46 @@ const GameBoard: React.FC<GameBoardProps> = ({
     <>
       <div 
         ref={vantaRef} 
-        className={`game-board ${fallbackActive ? 'fallback-active' : ''} ${themeLoaded ? 'theme-loaded' : ''}`}
-        style={fallbackActive ? fallbackStyles[theme as keyof typeof fallbackStyles] || fallbackStyles.clouds : {}}
-      ></div>
+        className={`game-board ${themeLoaded ? 'theme-loaded' : ''} ${fallbackActive ? 'fallback-active' : ''} ${theme}-theme`}
+        style={fallbackActive ? getFallbackStyle(theme) : undefined}
+      >
+        {theme === 'net' && <NetworkEffect />}
+        <ParticleBackground 
+          count={30} 
+          speed={0.3} 
+          color1={theme === 'clouds' || theme === 'waves' ? '#00b4d8' : 
+                 theme === 'fog' ? '#9900ff' : 
+                 theme === 'birds' ? '#ff3f81' : 
+                 '#00b4d8'}
+          color2={theme === 'clouds' || theme === 'waves' ? '#0077b6' : 
+                 theme === 'fog' ? '#ff00bc' : 
+                 theme === 'birds' ? '#4a90e2' : 
+                 '#bf3fff'}
+        />
+      </div>
+      
+      <div className={`game-phase-indicator ${gamePhase}-phase`}>
+        <span>{gamePhase === 'placement' ? 'Placement Phase' : 'Movement Phase'}</span>
+      </div>
+      
+      <div className={`current-player player-${currentPlayer}-turn`}>
+        <div className="current-player-indicator">
+          <div className="current-player-avatar">
+            {imageLoadErrors[currentPlayer === 1 ? player1Icon : player2Icon] ? (
+              <div className="avatar-fallback">P{currentPlayer}</div>
+            ) : (
+              <img 
+                src={currentPlayer === 1 ? player1Icon : player2Icon} 
+                alt={`Player ${currentPlayer}`} 
+                className="avatar-image"
+                onError={() => onImageError(currentPlayer === 1 ? player1Icon : player2Icon)}
+              />
+            )}
+          </div>
+          <span className="player-turn-text">Player {currentPlayer}'s Turn</span>
+        </div>
+      </div>
+      
       <div className="board-container">
         <svg
           width="100%"

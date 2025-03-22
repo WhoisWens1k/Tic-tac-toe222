@@ -2,9 +2,15 @@ import React, { useState, useCallback, useEffect } from 'react';
 import GameBoard from './components/GameBoard';
 import ScoreBoard from './components/ScoreBoard';
 import AvatarSelection from './components/AvatarSelection';
+import BackgroundStars from './components/BackgroundStars';
+import SettingsButton from './components/SettingsButton';
+import Settings from './components/Settings';
+import VolumeControl from './components/VolumeControl';
 import { useGameLogic } from './game/useGameLogic';
 import { avatarImages } from './utils/avatarImages';
+import { soundManager } from './utils/soundEffects';
 import './game-styles.css';
+import './App.css';
 
 // Fallback mapping for avatars
 const avatarFallbacks: Record<string, string> = {
@@ -27,6 +33,8 @@ const App: React.FC = () => {
   const [currentTheme, setCurrentTheme] = useState(DEFAULT_THEME);
   const [isThemeChanging, setIsThemeChanging] = useState(false);
   const [key, setKey] = useState(0); // Key to force re-render of GameBoard when theme changes
+  const [showSettings, setShowSettings] = useState(false);
+  const [soundVolume, setSoundVolume] = useState(0.5);
 
   const { gameState, handlePosition, resetGame, startGame } = useGameLogic();
 
@@ -50,6 +58,11 @@ const App: React.FC = () => {
     });
   }, []);
 
+  // Initialize sound manager
+  useEffect(() => {
+    soundManager.setVolume(soundVolume);
+  }, [soundVolume]);
+
   const handleImageError = useCallback((imagePath: string) => {
     setImageLoadErrors(prev => ({
       ...prev,
@@ -57,10 +70,9 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  const getAvatarFallback = useCallback((avatarPath: string | null) => {
-    if (!avatarPath) return 'Avatar';
-    return avatarFallbacks[avatarPath] || 'Avatar';
-  }, []);
+  const getAvatarFallback = (imagePath: string): string => {
+    return avatarFallbacks[imagePath] || 'P';
+  };
 
   const handleThemeChange = useCallback((theme: string) => {
     // Set loading state
@@ -90,10 +102,12 @@ const App: React.FC = () => {
   }, [gameState.winner]);
 
   const handleResetGame = useCallback(() => {
+    soundManager.play('click');
     resetGame();
   }, [resetGame]);
 
   const handleBackToHome = useCallback(() => {
+    soundManager.play('click');
     // Set loading state
     setIsThemeChanging(true);
     
@@ -109,102 +123,112 @@ const App: React.FC = () => {
     }, 300);
   }, [resetGame]);
 
+  const handleAvatarSelect = useCallback((p1Avatar: string, p2Avatar: string) => {
+    soundManager.play('select');
+    setPlayer1Avatar(p1Avatar);
+    setPlayer2Avatar(p2Avatar);
+    startGame(null, "medium");
+  }, [startGame]);
+
+  const handleThemeSelect = useCallback(() => {
+    soundManager.play('click');
+    handleThemeChange(AVAILABLE_THEMES[Math.floor(Math.random() * AVAILABLE_THEMES.length)]);
+  }, [handleThemeChange]);
+
+  const handleNewGame = useCallback(() => {
+    handleBackToHome();
+  }, [handleBackToHome]);
+
+  const toggleSettings = useCallback(() => {
+    setShowSettings(prev => !prev);
+  }, []);
+
+  const closeSettings = useCallback(() => {
+    setShowSettings(false);
+  }, []);
+
+  const handleVolumeChange = useCallback((volume: number) => {
+    setSoundVolume(volume);
+    soundManager.setVolume(volume);
+  }, []);
+
   if (!player1Avatar || !player2Avatar) {
     return (
-      <AvatarSelection
-        onSelect={(p1Avatar, p2Avatar) => {
-          setPlayer1Avatar(p1Avatar);
-          setPlayer2Avatar(p2Avatar);
-          startGame(null, "medium");
-        }}
-        onSelectTheme={handleThemeChange}
-        currentTheme={currentTheme}
-      />
+      <div className={`app-container ${isThemeChanging ? 'theme-changing' : ''}`}>
+        <BackgroundStars />
+        <div className="settings-corner">
+          <SettingsButton 
+            onClick={toggleSettings} 
+            className="settings-button-top-right"
+          />
+        </div>
+        <AvatarSelection
+          onSelect={handleAvatarSelect}
+          onSelectTheme={handleThemeSelect}
+          currentTheme={currentTheme}
+        />
+        {showSettings && (
+          <Settings 
+            onClose={closeSettings}
+            onSelectTheme={handleThemeChange}
+            currentTheme={currentTheme}
+            soundVolume={soundVolume}
+            onVolumeChange={handleVolumeChange}
+          />
+        )}
+      </div>
     );
   }
 
   return (
-    <div className={`app ${isThemeChanging ? 'theme-changing' : ''}`}>
+    <div className={`app-container ${isThemeChanging ? 'theme-changing' : ''}`}>
+      <BackgroundStars />
+      <div className="settings-corner">
+        <SettingsButton 
+          onClick={toggleSettings} 
+          className="settings-button-top-right"
+        />
+      </div>
       <div className="game-container">
-        <div className="header-container">
-          <h1>Modern Tic Tac Toe</h1>
-          <ScoreBoard
-            player1Icon={player1Avatar}
-            player2Icon={player2Avatar}
-            scores={{ PLAYER_ONE: scores[1], PLAYER_TWO: scores[2] }}
-            imageLoadErrors={imageLoadErrors}
-            onImageError={handleImageError}
-          />
-        </div>
-        <div className="game-info">
-          <div className="player-turn">
-            Current Player: 
-            <div className="avatar-display">
-              {imageLoadErrors[gameState.currentPlayer === 1 ? player1Avatar : player2Avatar] ? (
-                <div className="avatar-fallback">
-                  {getAvatarFallback(gameState.currentPlayer === 1 ? player1Avatar : player2Avatar)}
-                </div>
-              ) : (
-                <img 
-                  src={gameState.currentPlayer === 1 ? player1Avatar : player2Avatar} 
-                  alt={`Player ${gameState.currentPlayer}`} 
-                  className="avatar-image"
-                  onError={() => handleImageError(gameState.currentPlayer === 1 ? player1Avatar : player2Avatar)}
-                />
-              )}
-            </div>
-          </div>
-          <div className="game-phase">
-            {gameState.phase === 'placement' ? 'Placement Phase' : 'Movement Phase'}
-          </div>
-          {gameState.winner && (
-            <div className="winner">
-              Winner: 
-              <div className="avatar-display">
-                {imageLoadErrors[gameState.winner === 1 ? player1Avatar : player2Avatar] ? (
-                  <div className="avatar-fallback">
-                    {getAvatarFallback(gameState.winner === 1 ? player1Avatar : player2Avatar)}
-                  </div>
-                ) : (
-                  <img 
-                    src={gameState.winner === 1 ? player1Avatar : player2Avatar} 
-                    alt={`Player ${gameState.winner}`} 
-                    className="avatar-image"
-                    onError={() => handleImageError(gameState.winner === 1 ? player1Avatar : player2Avatar)}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Loading overlay */}
-        {isThemeChanging && (
-          <div className="theme-loading-overlay">
-            <div className="loading-spinner"></div>
-            <p>Changing theme...</p>
-          </div>
-        )}
+        <ScoreBoard
+          player1Icon={player1Avatar}
+          player2Icon={player2Avatar}
+          scores={{ PLAYER_ONE: scores[1], PLAYER_TWO: scores[2] }}
+          imageLoadErrors={imageLoadErrors}
+          onImageError={handleImageError}
+        />
         
         <GameBoard
-          key={key} // Force re-render when theme changes
+          key={key}
           board={gameState.board}
           currentPlayer={gameState.currentPlayer}
           selectedPosition={gameState.selectedPiece}
           winningLine={gameState.winningLine}
+          gamePhase={gameState.phase}
+          onPositionClick={handlePosition}
           player1Icon={player1Avatar}
           player2Icon={player2Avatar}
-          onPositionClick={handlePosition}
-          gamePhase={gameState.phase}
           imageLoadErrors={imageLoadErrors}
           onImageError={handleImageError}
           theme={currentTheme}
         />
+        
         <div className="controls">
-          <button onClick={handleResetGame} disabled={isThemeChanging}>New Game</button>
-          <button onClick={handleBackToHome} disabled={isThemeChanging}>Back to Home</button>
+          <button onClick={handleResetGame}>New Game</button>
+          <button onClick={handleThemeSelect}>Change Theme</button>
+          <button onClick={handleNewGame}>Change Avatars</button>
         </div>
       </div>
+      
+      {showSettings && (
+        <Settings 
+          onClose={closeSettings}
+          onSelectTheme={handleThemeChange}
+          currentTheme={currentTheme}
+          soundVolume={soundVolume}
+          onVolumeChange={handleVolumeChange}
+        />
+      )}
     </div>
   );
 };

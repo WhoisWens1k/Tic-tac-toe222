@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { soundManager } from '../utils/soundEffects';
+import { motion } from 'framer-motion';
 
 interface ThemeSelectorProps {
   onSelectTheme: (theme: string) => void;
@@ -8,108 +10,126 @@ interface ThemeSelectorProps {
 interface ThemeOption {
   id: string;
   name: string;
-  previewColor: string;
+  icon: string;
   description: string;
+  background: string;
 }
 
 const themeOptions: ThemeOption[] = [
-  { 
-    id: 'clouds', 
-    name: 'Clouds', 
-    previewColor: '#1a365d',
-    description: 'Floating clouds in a blue sky'
+  {
+    id: 'clouds',
+    name: 'Clouds',
+    icon: '☁️',
+    description: 'Peaceful floating clouds',
+    background: 'linear-gradient(to bottom, #4b6cb7, #182848)'
   },
-  { 
-    id: 'waves', 
-    name: 'Waves', 
-    previewColor: '#0a2e44',
-    description: 'Ocean waves with a deep blue background'
+  {
+    id: 'waves',
+    name: 'Waves',
+    icon: '🌊',
+    description: 'Gentle ocean waves',
+    background: 'linear-gradient(to bottom, #00b4db, #0083b0)'
   },
-  { 
-    id: 'fog', 
-    name: 'Fog', 
-    previewColor: '#2c3e50',
-    description: 'Mysterious fog effect'
+  {
+    id: 'fog',
+    name: 'Fog',
+    icon: '🌫️',
+    description: 'Mysterious foggy atmosphere',
+    background: 'linear-gradient(to bottom, #757f9a, #d7dde8)'
   },
-  { 
-    id: 'birds', 
-    name: 'Birds', 
-    previewColor: '#0a192f',
-    description: 'Flying birds animation'
+  {
+    id: 'birds',
+    name: 'Birds',
+    icon: '🐦',
+    description: 'Flying bird patterns',
+    background: 'linear-gradient(to bottom, #ff7e5f, #feb47b)'
   },
-  { 
-    id: 'net', 
-    name: 'Network', 
-    previewColor: '#0a192f',
-    description: 'Connected network nodes'
+  {
+    id: 'net',
+    name: 'Network',
+    icon: '🕸️',
+    description: 'Connected network of lines',
+    background: 'linear-gradient(to bottom, #5614b0, #dbd65c)'
   },
-  { 
-    id: 'dots', 
-    name: 'Dots', 
-    previewColor: '#0a192f',
-    description: 'Animated dots pattern'
+  {
+    id: 'dots',
+    name: 'Dots',
+    icon: '⚫',
+    description: 'Interactive particle dots',
+    background: 'linear-gradient(to bottom, #3a1c71, #d76d77, #ffaf7b)'
   },
-  { 
-    id: 'rings', 
-    name: 'Rings', 
-    previewColor: '#0a192f',
-    description: 'Circular rings animation'
+  {
+    id: 'rings',
+    name: 'Rings',
+    icon: '⭕',
+    description: 'Colorful circular rings',
+    background: 'linear-gradient(to bottom, #bc4e9c, #f80759)'
   }
 ];
 
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const item = {
+  hidden: { y: 20, opacity: 0 },
+  show: { y: 0, opacity: 1 }
+};
+
 const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onSelectTheme, currentTheme = 'clouds' }) => {
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewTheme, setPreviewTheme] = useState<ThemeOption | null>(null);
-
-  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const theme = event.target.value;
-    onSelectTheme(theme);
-  };
-
-  const handleMouseEnter = (theme: ThemeOption) => {
-    setPreviewTheme(theme);
-    setShowPreview(true);
-  };
-
-  const handleMouseLeave = () => {
-    setShowPreview(false);
-    setPreviewTheme(null);
+  const handleThemeSelect = (themeId: string) => {
+    soundManager.play('click');
+    onSelectTheme(themeId);
   };
 
   return (
-    <div className="theme-selector-container">
-      <div className="theme-selector">
-        <label htmlFor="theme">Select Theme:</label>
-        <select id="theme" value={currentTheme} onChange={handleChange}>
-          {themeOptions.map((theme) => (
-            <option key={theme.id} value={theme.id}>
-              {theme.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      <div className="theme-preview-grid">
+    <div className="theme-selector">
+      <motion.div 
+        className="theme-options"
+        variants={container}
+        initial="hidden"
+        animate="show"
+      >
         {themeOptions.map((theme) => (
-          <div 
+          <motion.button
             key={theme.id}
-            className={`theme-preview-item ${currentTheme === theme.id ? 'active' : ''}`}
-            onClick={() => onSelectTheme(theme.id)}
-            onMouseEnter={() => handleMouseEnter(theme)}
-            onMouseLeave={handleMouseLeave}
-            style={{ backgroundColor: theme.previewColor }}
+            className={`theme-option ${currentTheme === theme.id ? 'active' : ''}`}
+            onClick={() => handleThemeSelect(theme.id)}
+            aria-label={`Select ${theme.name} theme`}
+            title={theme.description}
+            variants={item}
+            whileHover={{ 
+              scale: 1.05, 
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+              transition: { duration: 0.2 }
+            }}
+            whileTap={{ scale: 0.95 }}
+            style={{ 
+              overflow: 'hidden',
+              position: 'relative' 
+            }}
           >
-            <span>{theme.name}</span>
-          </div>
+            <div className="theme-preview" style={{ background: theme.background }}>
+              <div className={`theme-effect ${theme.id}`}></div>
+              <span className="theme-icon">{theme.icon}</span>
+            </div>
+            <span className="theme-name">{theme.name}</span>
+            {currentTheme === theme.id && (
+              <motion.div 
+                className="theme-active-indicator"
+                layoutId="activeThemeIndicator"
+                initial={false}
+              />
+            )}
+          </motion.button>
         ))}
-      </div>
-      
-      {showPreview && previewTheme && (
-        <div className="theme-tooltip" style={{ backgroundColor: previewTheme.previewColor }}>
-          <h4>{previewTheme.name}</h4>
-          <p>{previewTheme.description}</p>
-        </div>
-      )}
+      </motion.div>
     </div>
   );
 };

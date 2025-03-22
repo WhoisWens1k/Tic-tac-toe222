@@ -16,7 +16,7 @@
     "vanta": "^0.5.24"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "set HOST=127.0.0.1&& set PORT=8888&& react-scripts start",
     "dev": "react-scripts start",
     "open": "set BROWSER=chrome && react-scripts start",
     "build": "react-scripts build",
